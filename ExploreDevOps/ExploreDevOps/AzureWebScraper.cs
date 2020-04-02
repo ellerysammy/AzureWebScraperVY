@@ -69,6 +69,57 @@ namespace ExploreDevOps
             return text;
         }
 
+        public async Task<List<int>> GetProjectsFromAlmSearch(string projectName, string textToSearch)
+        {
+            var almSearchUrl = "https://privateint.vueling.com/Vueling.ALM.Validations.WebApi/api/v1/PipelinesChecks/search";
+
+            var request = new AlmSearchRequest()
+            {
+                ExpressionToFind = textToSearch,
+                TeamProject = projectName,
+                CheckInJson = false
+            };
+
+            var json = JsonConvert.SerializeObject(request);
+            var data = new StringContent(json, Encoding.UTF8, "application/json");
+
+
+            HttpClient httpClient = new HttpClient();
+            httpClient.Timeout = TimeSpan.FromMinutes(30);
+            httpClient.DefaultRequestHeaders.Accept.Clear();
+            var result = await httpClient.PostAsync(almSearchUrl,data);
+
+            Stream response = await result.Content.ReadAsStreamAsync();
+            
+            StreamReader reader = new StreamReader(response);
+            string text = reader.ReadToEnd();
+
+            var urlList = JsonConvert.DeserializeObject<List<string>>(text);
+
+            return urlList.Select(url => GetBuildIdFromEditLink(url)).ToList();
+        }
+
+        private int GetBuildIdFromEditLink(string editLink)
+        {
+            try
+            {
+                var query = editLink.Split("?")[1];
+                var queryMembers = query.Split("&");
+                foreach (var member in queryMembers)
+                {
+                    if (member.StartsWith("id="))
+                    {
+                        var number = member.Split("=")[1];
+                        return int.Parse(number);
+                    }
+                }
+                return 0;
+            }
+            catch 
+            {
+                return 0;
+            }
+        }
         public async Task<List<Project>> GetProjectsFromAzure()
         {
             var projectsUrl = "https://dev.azure.com/vueling/_apis/projects";
