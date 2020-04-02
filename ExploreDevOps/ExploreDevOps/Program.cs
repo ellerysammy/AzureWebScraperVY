@@ -1,7 +1,6 @@
-﻿using Newtonsoft.Json.Linq;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.IO;
 
 namespace ExploreDevOps
 {
@@ -23,20 +22,33 @@ namespace ExploreDevOps
                 Console.WriteLine("Finished ALM Search Utility");
 
                 var repos = scraper.GetReposFromAzure(project.name).GetAwaiter().GetResult();
-                
+
                 foreach (var repo in repos)
                 {
-                    
+
                     var build = scraper.GetBuildDefinition(project.name, repo.name, "master").GetAwaiter().GetResult();
                     var buildName = build?.name ?? "No Validation Build";
 
                     if (build == null || BuildsWithoutSonar.Contains(build.id))
                     {
                         ALMVictims.Add($"{project.name},{repo.name},{buildName}");
-                        Console.WriteLine($"Victimized: {project.name} : {repo.name} : {buildName}");
+
+                        var output = $"Victimized: {project.name} : {repo.name} : {buildName}";
+
+                        Console.WriteLine(output);
+
+                        WriteToTxt(output);
                     }
                 }
                 Console.WriteLine();
+            }
+        }
+
+        private static void WriteToTxt(string output)
+        {
+            using (StreamWriter w = File.AppendText("./output.txt"))
+            {
+                w.WriteLine(output);
             }
         }
     }
