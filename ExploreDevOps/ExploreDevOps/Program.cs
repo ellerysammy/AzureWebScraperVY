@@ -18,10 +18,13 @@ namespace ExploreDevOps
 
             var checkProject = false;
 
+            CreateFile();
+
             Console.Write("Enter the project you want to start checking from: ");
             var startProject = Console.ReadLine();
 
-            CreateFile();
+
+            if (startProject == "") checkProject = true;
 
             foreach (var project in projects)
             {
