@@ -49,12 +49,11 @@ namespace ExploreDevOps
                         {
                             ALMVictims.Add($"{project.name},{repo.name},{buildName}");
 
-                            var output = $"Victimized: {project.name} : {repo.name} : {buildName}";
-
-                            Console.WriteLine(output);
-
-                            Line line = new Line(project?.name, repo?.name, buildName);
+                            Line line = new Line(project?.name, repo?.name, build);
                             AddToCsv(line);
+
+                            Console.WriteLine(line.Formatted);
+
                         }
                     }
                     Console.WriteLine();
@@ -69,16 +68,15 @@ namespace ExploreDevOps
         {
             File.WriteAllBytes(localPath, new byte[] { 0 });
 
-            var csvHeaders = string.Format("{0},{1},{2}{3}", "Project", "Repository", "Build", Environment.NewLine);
+            var csvHeaders = string.Format("{0},{1},{2},{3},{4}{5}", "Project", "Repository", "Build Name", "Build Id", "Build Url", Environment.NewLine);
 
             File.AppendAllText(localPath, csvHeaders);
         }
 
         private static void AddToCsv(Line line)
         {
-            var newLine = string.Format("{0},{1},{2}{3}", line.Project, line.Repository, line.Build, Environment.NewLine);
-
-            File.AppendAllText(localPath, newLine);
+            
+            File.AppendAllText(localPath, line.Formatted);
         }
     }
 
@@ -88,11 +86,44 @@ namespace ExploreDevOps
         public string Repository { get; set; }
         public string Build { get; set; }
 
-        public Line(string Project, string Repository, string Build)
+        public int BuildId { get; set; }
+
+        public string BuildEditUrl
+        {
+            get
+            {
+                if (this.BuildId == 0) return "";
+
+                var projectEncoded = Project.ToLower().Replace(" ", "%20");
+                return $"https://dev.azure.com/vueling/{projectEncoded}/_apps/hub/ms.vss-ciworkflow.build-ci-hub?_a=edit-build-definition&id={this.BuildId}";
+            }
+        }
+
+        public string Formatted
+        {
+            get
+            {
+                return string.Format("{0},{1},{2},{3},{4}{5}",
+                    Project, Repository, Build, (BuildId == 0) ? "" : BuildId.ToString(), BuildEditUrl, Environment.NewLine);
+            }
+        }
+
+        public Line(string Project, string Repository, BuildDefinition build)
         {
             this.Project = Project;
             this.Repository = Repository;
-            this.Build = Build;
+            if (build != null)
+            {
+                this.Build = build.name;
+                this.BuildId = build.id;
+            }
+            else
+            {
+                this.Build = "No Validation Build";
+                this.BuildId = 0;
+            }
         }
+
+        
     }
 }
